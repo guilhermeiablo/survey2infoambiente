@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Inventsys Categoria</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+    
+
+  </head>
+  <body>
+    {% extends "template.html" %}
+
+
+    {% block content %}
+
+        <div class="row">
+          <div class="col-md-3"></div>
+          <div class="col-md-6">
+            <img src="{{ url_for('static',    filename='img/Etapas-03.png') }}" style="align-self: center; max-width:100%; max-height:100%; height:auto"></img>
+          </div>
+        </div> 
+        
+
+        <div class="row">
+          <div class="col-md-5"></div>
+          <div class="col-md-2">
+            <img src="{{ url_for('static',    filename='img/inventsys3.png') }}" style="align-self: center; max-width:100%; max-height:100%; height:auto"></img>
+          </div>
+        </div> 
+        
+        
+    </div>
+   
+
+
+        <div class="row" style="background-color: #9D7748; min-height:60vh">
+            
+            <div class="col-md-4"></div>
+            <div class="col-md-4">
+                <div class="container">
+                <div class="content-section">
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+                        <fieldset class="form-group">
+                            <legend class="border-bottom mb-2" style="font-weight:200; text-align:center;font-size:1.2rem; color:white;"></br>Selecione uma categoria de ativo da operação selecionada</legend>
+                            <div class="form-group">
+                                {{ form.selecionacategoria.label(class="form-control-label", style="color:white") }}
+                                {% if form.selecionacategoria.errors %}
+                                    {{ form.selecionacategoria(class="form-control form-control-lg is-invalid", style="color:white") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.selecionacategoria.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.selecionacategoria(class="form-control form-control-lg", style="color:white") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                {{ form.inicio.label(class="form-control-label", style="color:white") }}
+                                {% if form.inicio.errors %}
+                                    {{ form.inicio(class="form-control form-control-lg is-invalid", style="color:white") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.inicio.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.inicio(class="form-control form-control-lg", style="color:white") }}
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                {{ form.fim.label(class="form-control-label", style="color:white") }}
+                                {% if form.fim.errors %}
+                                    {{ form.fim(class="form-control form-control-lg is-invalid", style="color:white") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.fim.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.fim(class="form-control form-control-lg", style="color:white") }}
+                                {% endif %}
+                            </div>
+                            
+                        </fieldset>
+                      
+                        <button class="form-group-block btn-block" id="upperbutton" style="background-color:#9D7748; border-width:0;">
+                            {{ form.submit(class="btn-block btn-raised btn-active", value="Enviar",type="submit", id='btnFetch') }}
+                            
+                        </button>
+                        
+                    </form>
+                    
+                </div>
+                
+                </div>
+            </div>
+        </div>
+
+
+   
+      
+    {% endblock content %}
+  </body>
+</html>

@@ -1,0 +1,114 @@
+ <!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <meta property="og:image" content="{{ url_for('static',    filename='img/logo.png') }}">
+    <meta name="twitter:image" content="{{ url_for('static',    filename='img/logo.png') }}">
+
+    
+
+
+    
+    
+
+
+    <!-- Material Design for Bootstrap fonts and icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons">
+
+    <!-- Material Design for Bootstrap CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-material-design@4.1.1/dist/css/bootstrap-material-design.min.css" integrity="sha384-wXznGJNEXNG1NFsbm0ugrLFMQPWswR3lds2VeinahP8N0zJw9VWSopbjv2x7WCvX" crossorigin="anonymous">
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static',    filename='img/favicon/apple-icon-57x57.png') }}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static',    filename='img/favicon/apple-icon-60x60.png') }}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static',    filename='img/favicon/apple-icon-72x72.png') }}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static',    filename='img/favicon/apple-icon-76x76.png') }}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{{ url_for('static',    filename='img/favicon/apple-icon-114x114.png') }}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static',    filename='img/favicon/apple-icon-120x120.png') }}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static',    filename='img/favicon/apple-icon-144x144.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static',    filename='img/favicon/apple-icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static',    filename='img/favicon/apple-icon-180x180.png') }}">
+    <link rel="icon" sizes="192x192" href="{{ url_for('static',    filename='img/favicon/android-icon-192x192.png') }}">
+    <link rel="icon" sizes="32x32" href="{{ url_for('static',    filename='img/favicon/favicon-32x32.png') }}">
+    <link rel="icon" sizes="96x96" href="{{ url_for('static',    filename='img/favicon/favicon-96x96.png') }}">
+    <link rel="icon" sizes="16x16" href="{{ url_for('static',    filename='img/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{ url_for('static',    filename='img/favicon/manifest.json) }}">
+    
+
+
+
+
+    <title>Inventsys2Infoambiente Template</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static',    filename='css/template.css') }}">
+    
+</head>
+  <body>
+
+    <header>
+      <nav class="navbar navbar-light bg-light" style="float:none;margin:0 auto;display: block;    text-align: center;">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+          <img src="{{ url_for('static',    filename='img/logo.png') }}" width="auto" height="30" class="d-inline-block align-top" alt="">
+          <img src="{{ url_for('static',    filename='img/logo_ste.png') }}" width="auto" height="30" class="d-inline-block align-top" alt="">
+        </a>
+      </nav>
+
+      
+    </header>
+ 
+ <div class="container">   
+{% with messages = get_flashed_messages(with_categories = true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+
+  {% endif %}
+{% endwith %}
+{% block content %}
+{% endblock %}
+</div>
+<!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    
+
+
+    <script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/popper.js@1.12.6/dist/umd/popper.js" integrity="sha384-fA23ZRQ3G/J53mElWqVJEGJzU0sTs+SvzG8fXVWP+kJQ1lwFAOkcUOysnlKJC33U" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/bootstrap-material-design@4.1.1/dist/js/bootstrap-material-design.js" integrity="sha384-CauSuKpEqAFajSpkdjv3z9t8E7RlpJ1UP0lKM/+NdtSarroVKu069AlsRPKkFBz9" crossorigin="anonymous"></script>
+    <script>$(document).ready(function() { $('body').bootstrapMaterialDesign(); });</script>
+
+    
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+<script>
+$(document).ready(function() {
+    $("#btnFetch").click(function() {
+      // disable button
+      $(this).prop("disabled", true);
+      // add spinner to button
+      
+    });
+
+    $("#upperbutton").click(function() {
+      
+      $(this).html(
+        `<span class="fa fa-spinner fa-spin" role="status" aria-hidden="true"></span> Enviando...`
+      );
+    });
+
+
+});
+</script>
+ </body>
+</html>
