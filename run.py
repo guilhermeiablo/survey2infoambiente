@@ -146,7 +146,6 @@ def loginpostgis():
 	
 	if item_to_add[0].layers[0].properties['geometryType']=='esriGeometryPoint':
 	    registrosbruto = pd.DataFrame.spatial.from_layer(item_to_add[0].layers[0])
-	    datafim = datetime.date(2019, 11, 15)
 	    registros=[]
 
 	    for i in range(0,len(registrosbruto)):
@@ -207,111 +206,6 @@ def loginpostgis():
 
 
 
-			dbobracorrente = """CREATE EXTENSION IF NOT EXISTS postgis;
-			DROP TABLE IF EXISTS {};
-			CREATE UNLOGGED TABLE IF NOT EXISTS {}(
-			id integer PRIMARY KEY,
-			created_at DATE,
-			updated_at DATE,
-			name text,
-			image text,
-			project text,
-			category_id integer,
-			category_name text,
-			latitude real,
-			longitude real,
-			tipo text,
-			dimensao_passagem text,
-			grau_obstrucao integer,
-			natureza_obstrucao text,
-			geom geometry(Point, 4326)
-			);""" 
-
-
-			dbobraespecial = """CREATE EXTENSION IF NOT EXISTS postgis;
-			DROP TABLE IF EXISTS {};
-			CREATE UNLOGGED TABLE IF NOT EXISTS {}(
-			id integer PRIMARY KEY,
-			created_at DATE,
-			updated_at DATE,
-			name text,
-			image text,
-			project text,
-			category_id integer,
-			category_name text,
-			latitude real,
-			longitude real,
-			tipo text,
-			largura_passagem real,
-			altura_passagem real,
-			margem_seca text,
-			grau_obstrucao text,
-			natureza_obstrucao text,
-			geom geometry(Point, 4326)
-			);""" 
-
-
-			dbarmadilhas = """CREATE EXTENSION IF NOT EXISTS postgis;
-			DROP TABLE IF EXISTS {};
-			CREATE UNLOGGED TABLE IF NOT EXISTS {}(
-			id integer PRIMARY KEY,
-			created_at DATE,
-			updated_at DATE,
-			name text,
-			image text,
-			project text,
-			category_id integer,
-			category_name text,
-			latitude real,
-			longitude real,
-			observacoes text,
-			instalacao DATE,
-			IDcartao text,
-			IDcamera text,
-			IDbueiro text,
-			estrada text,
-			foto_armadilha text,
-			gps_lat real,
-			gps_long real,
-			gps_alt real,
-			gps_acc real,
-			geom geometry(Point, 4326)
-			);""" 
-			    
-
-			dbatropelamentos = """CREATE EXTENSION IF NOT EXISTS postgis;
-			DROP TABLE IF EXISTS {};
-			CREATE UNLOGGED TABLE IF NOT EXISTS {}(
-			id integer PRIMARY KEY,
-			created_at DATE,
-			updated_at DATE,
-			name text,
-			image text,
-			project text,
-			category_id integer,
-			category_name text,
-			latitude real,
-			longitude real,
-			estrada text,
-			grupo text,
-			esp_mamifero text,
-			esp_ave text,
-			esp_reptil text,
-			esp_anfibio text,
-			esp_outro text,
-			idade text,
-			estado text,
-			posicao text,
-			id_etiqueta text,
-			nome_comum text,
-			sexo text,
-			observacoes text,
-			ponto_gps text,
-			geom geometry(Point, 4326)
-			);"""
-
-
-
 			cur.execute(sql.SQL(dropdbgenerica)
 						.format(sql.Identifier(nometabela)))
 			cur.execute(sql.SQL(createdbgenerica)
@@ -323,14 +217,14 @@ def loginpostgis():
 			
 			for item in registros:
 				genericfields=[
-					item['objectid'],
-					item['CreationDate'],
-					item['EditDate'],
-					item['SHAPE']['y'],
-					item['SHAPE']['x']
+					str(item['objectid']),
+					str(item['CreationDate']),
+					str(item['EditDate']),
+					float(item['SHAPE']['y']),
+					float(item['SHAPE']['x'])
 				]
 				my_data=[field for field in genericfields]
-				cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)),tuple(my_data))
+				cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)),tuple(my_data))
 
 			conn.commit()
 
@@ -348,7 +242,7 @@ def loginpostgis():
 			cur.execute(sql.SQL(dbsegmentos).format(sql.Identifier(segmentnome), sql.Identifier(segmentnome)))
 			conn.commit()
 
-			segmentos=requests.get('https://raw.githubusercontent.com/guilhermeiablo/inventsys2infoambiente/master/dados/ERS_segmentos_rodoviarios.geojson')
+			segmentos=requests.get('https://raw.githubusercontent.com/guilhermeiablo/survey2infoambiente/master/dados/ERS_segmentos_rodoviarios.geojson')
 
 
 			for feature in segmentos.json()['features']:
