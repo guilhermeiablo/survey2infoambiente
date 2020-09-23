@@ -5,7 +5,7 @@ from getpass import getpass
 import random , string
 import requests
 import json
-from forms import LoginFormInventsys, ProjectForm, CategoryForm, LoginFormPostgis, LoginFormGeoserver, LoginFormInfoambiente, ProgramaForm
+from forms import LoginFormInventsys, ProjectForm, PeriodForm, LoginFormPostgis, LoginFormGeoserver, LoginFormInfoambiente, ProgramaForm
 import psycopg2
 from psycopg2 import sql
 import geoserver
@@ -13,6 +13,9 @@ from geoserver.catalog import Catalog
 from geoserver.resource import FeatureType
 import re
 import datetime
+from arcgis import gis
+import pandas as pd
+from arcgis.features import GeoAccessor, GeoSeriesAccessor
 
 app = Flask(__name__)
 
@@ -49,20 +52,21 @@ def validateinventsys():
 	form = LoginFormInventsys()
 	if form.validate_on_submit():
 
-		url = 'https://api.inventsys.com.br/v4/login'
-		payload = "{\n  \"username\": \"" + form.username.data + "\",\n  \"password\": \"" + form.password.data + "\"\n}"
-		headers = {
-	  		'Account': 'stesa',
-	  		'Content-Type': 'application/json',
-		}
-		r = requests.request('POST', url, headers = headers, data = payload, allow_redirects=False)
-		r
+		arc = gis.GIS(username=form.username.data, password=form.password.data)
+		mytoken=generate_random_string()
+		session['mytoken']=mytoken
 
 
-		if r:
-			session['mytoken'] = r.json()['token']
+		if arc:
+			session['arcuser'] = str(form.username.data)
+			session['arcsenha'] = str(form.password.data)
+			items = arc.content.search(query="NOT title: %stakeholder% AND NOT title: %fieldworker% AND "+"owner:" + arc.users.me.username+" AND Survey", item_type="Feature Layer", max_items=500)
+			listaprojetos=[]
+			for item in items:
+			    listaprojetos.append(item.title)
+			    session['listaprojetos']=listaprojetos
 			flash(f'Login realizado com sucesso para {form.username.data}!', 'success')
-			return redirect(url_for('selectproject', mytoken=session['mytoken']))
+			return redirect(url_for('selectproject', mytoken=mytoken))
 		else:
 			flash('Login não realizado. Verifique o usuário e a senha.', 'danger')
 	return render_template('logininventsys.html', title='LoginInventsys', form=form)
@@ -72,42 +76,25 @@ def validateinventsys():
 
 @app.route("/selectproject", methods=['GET', 'POST'])
 def selectproject():
+	arc = gis.GIS(username=session.get('arcuser'), password=session.get('arcsenha'))
 	mytoken=session.get('mytoken')
-	payload = {}
-	headers = {
-    
-  		'Account': 'stesa',
-  		'Token': mytoken,
-	}
-	prjurl = 'https://api.inventsys.com.br/v4/projects'
-	projetos = requests.request('GET', prjurl, headers=headers, data=payload, allow_redirects=False)
-	listaprojetos = projetos.json()['projects']
 
-	variavelprj=""
-	variavelnome=""
-	listaprj=[]
-	listanomes=[]
-	for i in range(0,len(projetos.json()['projects'])):
-	    prj=(projetos.json()['projects'][i]['id'])
-	    nome=(projetos.json()['projects'][i]['name'])
-	    variavelprj=(str(prj))
-	    listaprj.append(variavelprj)
-	    variavelnome=(str(nome))
-	    listanomes.append(variavelnome)
-	tulpa = [(x, y) for x, y in zip(listaprj, listanomes)]
+	listaprojetos = session.get('listaprojetos')
+
+	
 	
 	form = ProjectForm()
-	form.selecionaprojeto.choices = tulpa
+	form.selecionaprojeto.choices = listaprojetos
 	
 
-	if form.validate_on_submit():	
-		if projetos:
-			session['project'] = str(form.selecionaprojeto.data)
-			session['projectname'] = str(dict(form.selecionaprojeto.choices).get(form.selecionaprojeto.data))
-			flash(f'Projeto '+session['projectname']+' selecionado com sucesso!', 'success')
-			return redirect(url_for('selectcategory', mytoken=session['mytoken'], project=session['project']))
-		else:
-			flash('Projeto não pode ser selecionado. Tente novamente.', 'danger')
+	if form.validate_on_submit():
+		items = arc.content.search(query="NOT title: %stakeholder% AND NOT title: %fieldworker% AND "+"owner:" + arc.users.me.username+" AND Survey", item_type="Feature Layer", max_items=500)
+		session['projectname'] = str(form.selecionaprojeto.data)
+
+		flash(f'Projeto '+session.get('projectname')+' selecionado com sucesso!', 'success')
+		return redirect(url_for('selectcategory', mytoken=session['mytoken']))
+	else:
+		flash('Projeto não pode ser selecionado. Verifique se há registros na camada.', 'danger')
 
 
 
@@ -120,43 +107,18 @@ def selectproject():
 def selectcategory():
 	
 	mytoken=session.get('mytoken')
-	payload = {}
-	headers = {
-    
-  		'Account': 'stesa',
-  		'Token': mytoken,
-	}
-	projectid = session.get('project')
+	
+	
+	
+	form = PeriodForm()
 
-	caturl = 'https://api.inventsys.com.br/v4/projects/'+projectid+'/categories'
-	categorias = requests.request('GET', caturl, headers=headers, data=payload, allow_redirects=False)
-
-	catvariavel=""
-	variavelnome=""
-	catlista=[]
-	listanomes=[]
-	for i in range(0,len(categorias.json()['categories'])):
-	    cat=(categorias.json()['categories'][i]['id'])
-	    nome=(categorias.json()['categories'][i]['name'])
-	    catvariavel=(str(cat))
-	    catlista.append(catvariavel)
-	    variavelnome=(str(nome))
-	    listanomes.append(variavelnome)
-	tulpa = [(x, y) for x, y in zip(catlista, listanomes)]
-
-	form = CategoryForm()
-	form.selecionacategoria.choices = tulpa
-
-	if form.validate_on_submit():	
-		if categorias:
-			session['category'] = str(form.selecionacategoria.data)
-			session['categoryname'] = str(dict(form.selecionacategoria.choices).get(form.selecionacategoria.data))
-			session['inicio']=form.inicio.data
-			session['fim']=form.fim.data
-			flash(f'Categoria '+session['categoryname']+' selecionado com sucesso!', 'success')
-			return redirect(url_for('loginpostgis', mytoken=session['mytoken'], project=session['project'], category=session['category']))
-		else:
-			flash('Categoria não pode ser selecionada. Tente novamente.', 'danger')
+	if form.validate_on_submit():
+		session['inicio']=form.inicio.data
+		session['fim']=form.fim.data
+		flash(f'Período selecionado com sucesso!', 'success')
+		return redirect(url_for('loginpostgis', mytoken=session['mytoken']))
+	else:
+		flash('Camada inválida. Selecione uma camada de pontos válida do Survey.', 'danger')
 
 
 
@@ -168,42 +130,32 @@ def selectcategory():
 @app.route("/loginpostgis", methods=['GET', 'POST'])
 def loginpostgis():
 	mytoken=session.get('mytoken')
-	payload = {}
-	headers = {
-    
-  		'Account': 'stesa',
-  		'Token': mytoken,
-	}
-	page = 1
-	registrosbruto = []
-	projectid = session.get('project')
-	categoryid = session.get('category')
+	
+	projectname = session.get('projectname')
 	datainicio = session.get('inicio')
 	datafim = session.get('fim')
-	while True:
-	    try:
-	        url = 'https://api.inventsys.com.br/v4/projects/'+projectid+'/items?category='+categoryid+'&pagesize=1&page='+str(page)+'&since='+str(datainicio)
-	        ativos = requests.request('GET', url, headers=headers, data=payload, allow_redirects=False)
-	        
-	        registrosbruto = registrosbruto + ativos.json()['items']
-	    # ... put any other Exception you need to handle here
-	    except IndexError:
-	        break
-	    else:
-	        if len(ativos.json()['items'])==0:
-	            break
-	        else:
-	            page += 1
+	
+	arc = gis.GIS(username=session.get('arcuser'), password=session.get('arcsenha'))
 
+	items = arc.content.search(query="NOT title: %stakeholder% AND NOT title: %fieldworker% AND "+"owner:" + arc.users.me.username+" AND Survey", item_type="Feature Layer", max_items=500)
 
-	registros=[]
-	for i in range(0,len(registrosbruto)):
-	    ano=int(registrosbruto[i]['updated_at'][0:4])
-	    mes=int(registrosbruto[i]['updated_at'][5:7])
-	    dia=int(registrosbruto[i]['updated_at'][8:10])
-	    dataobjeto = datetime.date(ano, mes, dia)
-	    if dataobjeto<datafim:
-	        registros.append(registrosbruto[i])
+	item_to_add = [temp_item for temp_item in items if temp_item.title == session.get('projectname')]
+	project = item_to_add[0].layers[0].properties['serviceItemId']
+	session['project']=project
+
+	
+	if item_to_add[0].layers[0].properties['geometryType']=='esriGeometryPoint':
+	    registrosbruto = pd.DataFrame.spatial.from_layer(item_to_add[0].layers[0])
+	    datafim = datetime.date(2019, 11, 15)
+	    registros=[]
+
+	    for i in range(0,len(registrosbruto)):
+	        ano=int(str(registrosbruto.iloc[i]['CreationDate'])[0:4])
+	        mes=int(str(registrosbruto.iloc[i]['CreationDate'])[5:7])
+	        dia=int(str(registrosbruto.iloc[i]['CreationDate'])[8:10])
+	        dataobjeto = datetime.date(ano, mes, dia)
+	        if dataobjeto<datafim:
+	            registros.append(registrosbruto.iloc[i])
 	
 	ano=datafim.year
 	mes=datafim.month
@@ -235,23 +187,18 @@ def loginpostgis():
 			flash(f'Dados enviados com sucesso para {form.dbnameinput.data}!', 'success')
 
 			projectid=session.get('project')
-			categoryid=session.get('category')
+			
 			
 
 			dropdbgenerica = """CREATE EXTENSION IF NOT EXISTS postgis;
 			DROP TABLE IF EXISTS {}""" 
 
-			nometabela=dataref+'_'+projectid+'_'+categoryid
+			nometabela=dataref+'_'+projectid
 
 			createdbgenerica = """CREATE UNLOGGED TABLE IF NOT EXISTS {}(
 			id integer PRIMARY KEY,
 			created_at DATE,
 			updated_at DATE,
-			name text,
-			image text,
-			project text,
-			category_id integer,
-			category_name text,
 			latitude real,
 			longitude real,
 			geom geometry(Point, 4326)
@@ -365,173 +312,26 @@ def loginpostgis():
 
 
 
-			if categoryid=='20685':
-			    cur.execute(sql.SQL(dbarmadilhas)
-			                .format(sql.Identifier(nometabela), sql.Identifier(nometabela)))
-			    tabelagerada=dataref+'_'+projectid+'_'+categoryid
-			else:
-			    if categoryid=='20686':
-			        cur.execute(sql.SQL(dbatropelamentos)
-			                .format(sql.Identifier(nometabela), sql.Identifier(nometabela)))
-			        tabelagerada=dataref+'_'+projectid+'_'+categoryid
-			    else:
-			        if categoryid=='18278':
-			            cur.execute(sql.SQL(dbobraespecial)
-			                .format(sql.Identifier(nometabela), sql.Identifier(nometabela)))
-			            tabelagerada=dataref+'_'+projectid+'_'+categoryid
-			        else:
-			            if categoryid=='18284':
-			                cur.execute(sql.SQL(dbobracorrente)
-			                .format(sql.Identifier(nometabela), sql.Identifier(nometabela)))
-			                tabelagerada=dataref+'_'+projectid+'_'+categoryid
-			            else:
-			                cur.execute(sql.SQL(dropdbgenerica)
-			                            .format(sql.Identifier(nometabela)))
-			                cur.execute(sql.SQL(createdbgenerica)
-			                            .format(sql.Identifier(nometabela)))
-			                tabelagerada=dataref+'_'+projectid+'_'+categoryid
+			cur.execute(sql.SQL(dropdbgenerica)
+						.format(sql.Identifier(nometabela)))
+			cur.execute(sql.SQL(createdbgenerica)
+						.format(sql.Identifier(nometabela)))
+			tabelagerada=dataref+'_'+projectid
 
 			conn.commit()
 
-			categoriasegr={'18284', '18278', '20685', '20686'}
-		    
+			
+			for item in registros:
+				genericfields=[
+					item['objectid'],
+					item['CreationDate'],
+					item['EditDate'],
+					item['SHAPE']['y'],
+					item['SHAPE']['x']
+				]
+				my_data=[field for field in genericfields]
+				cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)),tuple(my_data))
 
-
-			if categoryid not in categoriasegr:
-			    for item in registros:
-			        genericfields=[
-			            item['id'],
-			            item['created_at'],
-			            item['updated_at'],
-			            item['name'],
-			            item['image'],
-			            item['project']['name'],
-			            item['category_id'],
-			            item['category']['name'],
-			            item['location']['lat'],
-			            item['location']['lng']
-			        ]
-			        my_data=[field for field in genericfields]
-			        cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)),tuple(my_data))
-			else:
-			    print('.')
-			    
-			    
-			if categoryid=='18284':
-			        for item in registros:
-			            obracorrentefields = [
-			            item['id'],
-			            item['created_at'],
-			            item['updated_at'],
-			            item['name'],
-			            item['image'],
-			            item['project']['name'],
-			            item['category_id'],
-			            item['category']['name'],
-			            item['location']['lat'],
-			            item['location']['lng'],
-			            item['info'][0]['value'],
-			            item['info'][1]['value'],
-			            item['info'][2]['value'],
-			            item['info'][3]['value']
-			            ]
-			            my_data = [field for field in obracorrentefields]
-			            cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)), tuple(my_data))
-			else:
-			    print('.')
-
-
-			if categoryid=='18278':
-			    for item in registros:
-			        obraespecialfields = [
-			        item['id'],
-			        item['created_at'],
-			        item['updated_at'],
-			        item['name'],
-			        item['image'],
-			        item['project']['name'],
-			        item['category_id'],
-			        item['category']['name'],
-			        item['location']['lat'],
-			        item['location']['lng'],
-			        item['info'][0]['value'],
-			        item['info'][1]['value'],
-			        item['info'][2]['value'],
-			        item['info'][3]['value'],
-			        item['info'][4]['value'],
-			        item['info'][5]['value']
-			        ]
-			        my_data = [field for field in obraespecialfields]
-			        cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)), tuple(my_data))
-			else:
-			    print('.')
-
-
-
-			if categoryid=='20685':
-			    for item in registros:
-			        armadilhafields = [
-			        item['id'],
-			        item['created_at'],
-			        item['updated_at'],
-			        item['name'],
-			        item['image'],
-			        item['project']['name'],
-			        item['category_id'],
-			        item['category']['name'],
-			        item['location']['lat'],
-			        item['location']['lng'],
-			        item['info'][0]['value'],
-			        item['info'][1]['value'],
-			        item['info'][2]['value'],
-			        item['info'][3]['value'],
-			        item['info'][4]['value'],
-			        item['info'][5]['value'],
-			        item['info'][6]['value'],
-			        item['info'][7]['value'],
-			        item['info'][8]['value'],
-			        item['info'][9]['value'],
-			        item['info'][10]['value'],
-			        ]
-			        my_data = [field for field in armadilhafields]
-			        cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)), tuple(my_data))
-			else:
-			        print('.')
-			    
-			if categoryid=='20686':
-			    for item in registros:
-			        atropelamentofields = [
-			        item['id'],
-			        item['created_at'],
-			        item['updated_at'],
-			        item['name'],
-			        item['image'],
-			        item['project']['name'],
-			        item['category_id'],
-			        item['category']['name'],
-			        item['location']['lat'],
-			        item['location']['lng'],
-			        item['info'][0]['value'],
-			        item['info'][1]['value'],
-			        item['info'][2]['value'],
-			        item['info'][3]['value'],
-			        item['info'][4]['value'],
-			        item['info'][5]['value'],
-			        item['info'][6]['value'],
-			        item['info'][7]['value'],
-			        item['info'][8]['value'],
-			        item['info'][9]['value'],
-			        item['info'][10]['value'],
-			        item['info'][11]['value'],
-			        item['info'][12]['value'],
-			        item['info'][13]['value'],
-			        item['info'][14]['value']
-			        ]
-			        my_data = [field for field in atropelamentofields]
-			        cur.execute(sql.SQL("INSERT INTO {} VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)").format(sql.Identifier(nometabela)), tuple(my_data))
-			else:
-			    print('.')
-			    
 			conn.commit()
 
 			nomeindex=tabelagerada+'index'
@@ -578,10 +378,10 @@ def loginpostgis():
 
 
 
-			return redirect(url_for('logingeoserver', mytoken=session['mytoken'], project=session['project'], category=session['category']))
+			return redirect(url_for('logingeoserver', mytoken=session['mytoken'], project=session['project']))
 		else:
 			flash('Erro ao conectar a base de dados. Tente novamente.', 'danger')
-	return render_template('loginpostgis.html', title='LoginPostgis', form=form, mytoken=mytoken, project=session['project'], category=session['category'])
+	return render_template('loginpostgis.html', title='LoginPostgis', form=form, mytoken=mytoken, project=session['project'])
 
 
 
@@ -591,7 +391,6 @@ def logingeoserver():
 	form = LoginFormGeoserver()
 	mytoken=session.get('mytoken')
 	projectid=session.get('project')
-	categoryid=session.get('category')
 	segmentos=requests.get('https://raw.githubusercontent.com/guilhermeiablo/inventsys2infoambiente/master/dados/ERS_segmentos_rodoviarios.geojson')
 	tabelagerada=session.get('tabelagerada')
 
@@ -637,20 +436,19 @@ def logingeoserver():
 			            r = requests.post(urldatastore, headers=headersdatastore, auth=authdatastore)
 			            break
 
-			return redirect(url_for('logininfoambiente', mytoken=session['mytoken'], project=session['project'], category=session['category']))
+			return redirect(url_for('logininfoambiente', mytoken=session['mytoken'], project=session['project']))
 		else:
 			flash('Erro ao conectar ao servidor. Tente novamente.', 'danger')
 
 
 
-	return render_template("logingeoserver.html", title='LoginGeoserver', form=form, mytoken=mytoken, project=session['project'], category=session['category'])
+	return render_template("logingeoserver.html", title='LoginGeoserver', form=form, mytoken=mytoken, project=session['project'])
 
 @app.route("/logininfoambiente", methods=['GET', 'POST'])
 def logininfoambiente():
 	form = LoginFormInfoambiente()
 	mytoken=session.get('mytoken')
 	projectid=session.get('project')
-	categoryid=session.get('category')
 	segmentos=requests.get('https://raw.githubusercontent.com/guilhermeiablo/inventsys2infoambiente/master/dados/ERS_segmentos_rodoviarios.geojson')
 	tabelagerada=session.get('tabelagerada')
 	if form.validate_on_submit():
@@ -727,13 +525,13 @@ def logininfoambiente():
 			
 			flash(f'Login realizado com sucesso para o usuário {form.usrinfoambiente.data}!', 'success')
 
-			return redirect(url_for('selectprograma', mytoken=session['mytoken'], project=session['project'], category=session['category']))
+			return redirect(url_for('selectprograma', mytoken=session['mytoken'], project=session['project']))
 		else:
 			flash('Usuário ou senha inválidos. Tente novamente.', 'danger')
 
 
 
-	return render_template("logininfoambiente.html", title='LoginInfoambiente', form=form, mytoken=mytoken, project=session['project'], category=session['category'])
+	return render_template("logininfoambiente.html", title='LoginInfoambiente', form=form, mytoken=mytoken, project=session['project'])
 
 
 
@@ -743,7 +541,6 @@ def selectprograma():
 	form.selecionaprograma.choices = sorted(session.get('programasambientais'))
 	mytoken=session.get('mytoken')
 	projectid=session.get('project')
-	categoryid=session.get('category')
 	segmentos=requests.get('https://raw.githubusercontent.com/guilhermeiablo/inventsys2infoambiente/master/dados/ERS_segmentos_rodoviarios.geojson')
 	tabelagerada=session.get('tabelagerada')
 	payload=session.get('infoambientepayload')
@@ -886,13 +683,13 @@ def selectprograma():
 		if ok=='ok':
 			flash(f'Dados enviados com sucesso para o Infoambiente sob o programa {form.selecionaprograma.data}!', 'success')
 
-			return redirect(url_for('success', mytoken=session['mytoken'], project=session['project'], category=session['category']))
+			return redirect(url_for('success', mytoken=session['mytoken'], project=session['project']))
 		else:
 			flash('Erro ao enviar os dados. Tente novamente.', 'danger')
 
 
 
-	return render_template("selectprograma.html", title='SelectPrograma', form=form, mytoken=mytoken, project=session['project'], category=session['category'])
+	return render_template("selectprograma.html", title='SelectPrograma', form=form, mytoken=mytoken, project=session['project'])
 
 
 
@@ -900,7 +697,7 @@ def selectprograma():
 @app.route("/success")
 def success():
 
-	return render_template("success.html", mytoken=session['mytoken'], projectname=session['projectname'], categoryname=session['categoryname'])
+	return render_template("success.html", mytoken=session['mytoken'], projectname=session['projectname'])
 
 
 

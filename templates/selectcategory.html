@@ -36,7 +36,7 @@
    
 
 
-        <div class="row" style="background-color: #9D7748; min-height:60vh">
+        <div class="row" style="background-color: #488351; min-height:60vh">
             
             <div class="col-md-4"></div>
             <div class="col-md-4">
@@ -45,20 +45,8 @@
                     <form method="POST" action="">
                         {{ form.hidden_tag() }}
                         <fieldset class="form-group">
-                            <legend class="border-bottom mb-2" style="font-weight:200; text-align:center;font-size:1.2rem; color:white;"></br>Selecione uma categoria de ativo da operação selecionada</legend>
-                            <div class="form-group">
-                                {{ form.selecionacategoria.label(class="form-control-label", style="color:white") }}
-                                {% if form.selecionacategoria.errors %}
-                                    {{ form.selecionacategoria(class="form-control form-control-lg is-invalid", style="color:white") }}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.selecionacategoria.errors %}
-                                            <span>{{ error }}</span>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {{ form.selecionacategoria(class="form-control form-control-lg", style="color:white") }}
-                                {% endif %}
-                            </div>
+                            <legend class="border-bottom mb-2" style="font-weight:200; text-align:center;font-size:1.2rem; color:white;"></br>Selecione o período de interesse: </legend>
+                            
                             <div class="form-group">
                                 {{ form.inicio.label(class="form-control-label", style="color:white") }}
                                 {% if form.inicio.errors %}
@@ -88,7 +76,7 @@
                             
                         </fieldset>
                       
-                        <button class="form-group-block btn-block" id="upperbutton" style="background-color:#9D7748; border-width:0;">
+                        <button class="form-group-block btn-block" id="upperbutton" style="background-color:#488351; border-width:0;">
                             {{ form.submit(class="btn-block btn-raised btn-active", value="Enviar",type="submit", id='btnFetch') }}
                             
                         </button>

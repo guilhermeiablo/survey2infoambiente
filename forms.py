@@ -15,8 +15,7 @@ class ProjectForm(FlaskForm):
     submit= SubmitField('Enviar') 
 
 
-class CategoryForm(FlaskForm):
-    selecionacategoria = SelectField('Categoria')
+class PeriodForm(FlaskForm):
     inicio = DateField('Data de início', format='%Y-%m-%d')
     fim = DateField('Data de fim', format='%Y-%m-%d')
     submit= SubmitField('Enviar') 
